@@ -64,10 +64,9 @@ def clean2017(df, areaHarvested, georefPoints):
             HarvestYear = 2017,
             BiomassDryPerArea = (df_qa["Dried Total Biomass mass + bag(g) + bags inside"] - df_qa["Average Dried total biomass bag + empty grain bag & empty residue bag inside mass (g)"])/areaHarvested,
             GrainYieldDryPerArea = (df_qa["Non-Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"])/areaHarvested,
-            GrainYield125PerArea = 
-                ((df_qa["Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"]) - 
-                ((df_qa["Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"]) * (df_qa["Moisture"] / 100.0)) + 
-                ((df_qa["Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"]) * 0.125)) / areaHarvested,
+            GrainYield0 = 
+                (df_qa["Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"]) - 
+                ((df_qa["Oven dried grain mass (g)"] - df_qa["Average Non-Oven dried grain bag mass (g)"]) * (df_qa["Moisture"] / 100.0)),
             Crop = df_qa["Total Biomass Barcode ID"].str.split("_", expand = True)[2],
             ID2 = df_qa["Total Biomass Barcode ID"].str.split("_", expand = True)[0].str.replace("CE", "").str.replace("CW", ""),
             GrainMoisture = df_qa["Moisture"],
@@ -75,6 +74,10 @@ def clean2017(df, areaHarvested, georefPoints):
             SampleID = df_qa["Total Biomass Barcode ID"]
         )
         .astype({"ID2": int})
+    )
+
+    df_calc = df_calc.assign(
+        GrainYield125PerArea = (df_calc.GrainYield0 + (df_calc.GrainYield0 * 0.125)) / areaHarvested
     )
 
     df_clean = (
@@ -148,14 +151,17 @@ def clean2019(df, areaHarvested, georefPoints):
         df_merge.assign(
             BiomassDryPerArea = df_merge["Dried total biomass (g)"] / areaHarvested,
             GrainYieldDryPerArea = df_merge["Non-oven-dried grain (g)"] / areaHarvested,
-            GrainYield125PerArea = 
-                (df_merge["Non-oven-dried grain (g)"] - 
-                (df_merge["Non-oven-dried grain (g)"] * (df_merge["Moisture"] / 100.0)) +
-                (df_merge["Non-oven-dried grain (g)"] * 0.125)) / areaHarvested,
+            GrainYield0 = 
+                df_merge["Non-oven-dried grain (g)"] - 
+                (df_merge["Non-oven-dried grain (g)"] * (df_merge["Moisture"] / 100.0)),
             GrainMoisture = df_merge["Moisture"],
             Comments = df_merge["Notes"].astype(str) + "| " + df_merge["Notes made by Ian Leslie"]
         )
-        
+    )
+
+    df_calc = df_calc.assign(
+        GrainYield125PerArea = 
+            (df_calc.GrainYield0 + (df_calc.GrainYield0 * 0.125)) / areaHarvested,
     )
 
     df_clean = (
