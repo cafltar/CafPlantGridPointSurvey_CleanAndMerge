@@ -1,0 +1,11 @@
+ID,Variable,NewVal,Comment,Reviewer
+CE14_Bio_SW_2017_19-A,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE16_Bio_SW_2017_22-A,Dried Total Biomass mass + bag(g) + bags inside,1978,1978 g Total biomass found in 9-22-2017 DET,Ian Leslie
+CE33_Bio_SW_2017_16-B,Test Weight (NIR),56.8,"Test Weight needs to be corrected from 56,8 to 56.8",Ian Leslie
+CE95_Bio_SW_2017_3-E,Dried Total Biomass mass + bag(g) + bags inside,1529,"Dried total biomass value should be replaced with 1529, see orginal note at end of DET in red. ",Ian Leslie
+CE107_Bio_SW_2017_15-E,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE212_Bio_SW_2017_19-I,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE213_Bio_SW_2017_20-I,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE292_Bio_SW_2017_29-L,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE423_Bio_SW_2017_19-R,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie
+CE425_Bio_SW_2017_21-R,CropExists,0,"No crop at this location, sample not taken.",Ian Leslie

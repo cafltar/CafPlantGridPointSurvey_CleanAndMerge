@@ -1,0 +1,25 @@
+ID,Variable,NewVal,Comment,Reviewer
+CE76_Bio_GB_2018_11-D,non-oven dried grain mass + bag (g),,grain biomass should not be used,Ian Leslie
+CE76_Bio_GB_2018_11-D,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CE203_Bio_GB_2018_10-I,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CE237_Bio_GB_2018_19-J,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CE237_Bio_GB_2018_19-J,non-oven dried grain mass + bag (g),,grain biomass should not be used,Ian Leslie
+CE292_Bio_GB_2018_29-L,CropExists,0,"No sample taken, no crop at location",Ian Leslie
+CE299_Bio_GB_2018_11-M,non-oven dried grain mass + bag (g),,"No NIR moisture data, not able to correct for, do not use grain mass",Ian Leslie
+CE299_Bio_GB_2018_11-M,Non-oven dried grain (g),,"No NIR moisture data, not able to correct for, do not use grain mass",Ian Leslie
+CE378_Bio_GB_2018_19-P,non-oven dried grain mass + bag (g),,grain biomass should not be used,Ian Leslie
+CE378_Bio_GB_2018_19-P,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CE423_Bio_GB_2018_19-R,CropExists,0,"No sample taken, no crop at location",Ian Leslie
+CW573_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW574_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW575_Bio_GB_2018,non-oven dried grain mass + bag (g),,grain biomass should not be used,Ian Leslie
+CW575_Bio_GB_2018,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CW604_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW619_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW620_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW628_Bio_GB_2018,dried total biomass mass + bag + residue bag + grain bag (g),,"Total biomass obvious keystroke error, should not be used. ",Ian Leslie
+CW628_Bio_GB_2018,dried total biomass (g),,"Total biomass obvious keystroke error, should not be used. ",Ian Leslie
+CW634_Bio_GB_2018,non-oven dried grain mass + bag (g),,grain biomass should not be used,Ian Leslie
+CW634_Bio_GB_2019,Non-oven dried grain (g),,grain biomass should not be used,Ian Leslie
+CW661_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie
+CW662_Bio_GB_2018,CropExists,0,"No sample taken, different crop",Ian Leslie

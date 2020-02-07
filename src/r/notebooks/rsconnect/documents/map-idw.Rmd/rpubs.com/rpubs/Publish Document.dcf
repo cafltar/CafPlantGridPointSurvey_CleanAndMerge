@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/555715/f9faff0816ee4b408e6c1b41007d2fe1
+bundleId: https://api.rpubs.com/api/v1/document/555715/f9faff0816ee4b408e6c1b41007d2fe1
+url: http://rpubs.com/bryancarlson/555715
+when: 1580767798.67108

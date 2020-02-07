@@ -1,0 +1,21 @@
+FieldName,Units,Description,DataType
+HarvestYear,unitless,Year sample was collected,Int
+ID2,unitless,Number ID of georeference point near sample collection,Int
+Longitude,dd,Longitude of georeference point near where sample was collected,Double
+Latitude,dd,Latitude of georeference point near where sample was collected,Double
+SampleID,unitless,ID of sample,String
+Crop,unitless,"Crop abbreviation where: Spring wheat = SW, Winter wheat = WW, Spring canola = SC, Winter canola = WC, Spring barley = SB, Spring pea = SP, Winter barley = WB, Winter pea = WP, Winter triticale = WT, Winter lentil = WL, Garbonzo Beans = GB, Alfalfa = AL",String
+GrainYieldDryPerArea,g/m2,"Dry grain yield on a per area basis. Sample dried in greenhouse or oven, threshed, then weighed. Some moisture likely still present",Double
+GrainCarbon,%,Percent carbon of dry grain mass,Double
+GrainNitrogen,%,Percent nitrogen of dry gain mass,Double
+GrainProtein,%,Percent of protein in grain,Double
+GrainMoisture,%,Percent of moisture in dried grain,Double
+GrainStarch,%,Percent of starch in dried grain,Double
+GrainWGlutDM,%,Percent of gluten in dried grain,Double
+GrainOilDM,%,Percent of oil in dried grain,Double
+GrainTestWeight,lb/bushel,"Test weight of grain, as an indicator of grain quality",Double
+ResidueMassDryPerArea,g/m2,Residue mass on a per area basis. Sample dried in greenhouse or oven. Residue = (biomass - grain mass) / area,Double
+ResidueCarbon,%,Percent carbon of dry residue mass,Double
+ResidueNitrogen,%,Percent nitrogen of dry residue mass,Double
+CropExists,unitless,"Indication whether or not a crop was present at location: 1 = crop present, 0 = not present. Crop not present due to planting error, failed germination, weeds, etc. A value of 1 without data indicates missing sample",Int
+Comments,unitless,"Comments, aggregated from various columns. '|' or ',' separates source",String

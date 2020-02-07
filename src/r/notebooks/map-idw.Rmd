@@ -1,0 +1,332 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r setup}
+library(tidyverse)
+library(sf)
+library(tmap)
+library(DT)
+library(gstat)
+library(raster)
+library(maptools)
+library(latticeExtra)
+#map_cookeast_idw(sf.bd1998, cookeast, AvgBD, seq(1.1,1.7,by=0.1), cols <- blues9[3:9])
+```
+
+```{r idwMap, include=FALSE}
+map_idw <- function(simpleFeatureObj, 
+                    cookEastBoundary, 
+                    factor,
+                    cutSeq,
+                    colSeq) {
+  # Help with styles: https://casoilresource.lawr.ucdavis.edu/software/r-advanced-statistical-package/working-spatial-data/customizing-maps-r-spplot-and-latticeextra-functions/
+  
+  # TODO: add params for hardcoded values
+  # Convert sf to sp
+  sp <- as(simpleFeatureObj, "Spatial")
+  sp$Crop <- as.factor(sp$Crop)
+  
+  # Create grid for IDW
+  e <- extent(sp)
+  grid <- raster(e)
+  proj4string(grid) <- proj4string(sp)
+  res(grid) <- c(0.00004, 0.00004)
+  grid <- as(grid, "SpatialPointsDataFrame")
+  
+  # Passing variable names is tricky: https://stackoverflow.com/a/34079727
+  var <- eval(substitute(factor), simpleFeatureObj)
+  var.name <- substitute(var)
+  
+  # Generate IDW 
+  idw <- idw(formula = var ~ 1, locations = sp, newdata = grid, idp = 4)
+  
+  # Clip and map
+  idw.sf.clip <- st_intersection(st_as_sf(idw), cookEastBoundary)
+  idw.clip <- as(idw.sf.clip, "Spatial")
+  
+  #cuts <- 0.2*(1.2:7)
+  
+  p <- spplot(idw.clip, 
+       "var1.pred", 
+       cuts = cutSeq, 
+       col.regions = colSeq,
+       sp.layout = list("sp.points", sp, pch = 16, cex = 0.5, col = sp$Crop))
+  p <- update(p, key = simpleKey(levels(sp$Crop), points = T, columns = 1, title = "Crop", cex=0.5, space="right"))
+  
+  p
+}
+```
+
+```{r loadData, include=FALSE}
+df <- read_csv("../input/aggregated-yield-biomass_1999-2019.csv")
+sf <- st_as_sf(df, coords = c("Longitude", "Latitude"), crs = 4326)
+cookeast <- st_read("../input/cookeast_boundary_20190924.geojson")
+cookwest <- st_read("../input/cookwest_boundary_20190924.geojson")
+```
+
+## Some stats
+
+### Data fields
+
+```{r headers}
+df %>% names()
+```
+
+### Range, mean, standard deviation
+
+Yield
+
+```{r stats.yield}
+df %>% 
+  filter(HarvestYear > 2016) %>% 
+  mutate(FieldID = case_when(ID2 > 470 ~ "CW",
+                             TRUE ~ "CE")) %>% 
+  group_by(Crop, HarvestYear, FieldID) %>% 
+  summarize(yield.min = round(min(GrainYieldDryPerArea, na.rm = T), digits = 2),
+            yield.max = round(max(GrainYieldDryPerArea, na.rm = T), digits = 2),
+            yield.mean = round(mean(GrainYieldDryPerArea, na.rm = T), digits = 2),
+            yield.sd = round(sd(GrainYieldDryPerArea, na.rm = T), digits = 2)) %>% 
+  arrange(by = HarvestYear)
+```
+
+Biomass
+
+```{r stats.biomass}
+df %>% 
+  filter(HarvestYear > 2016) %>% 
+  mutate(FieldID = case_when(ID2 > 470 ~ "CW",
+                             TRUE ~ "CE")) %>% 
+  group_by(Crop, HarvestYear, FieldID) %>% 
+  summarize(biomass.min = round(min(BiomassDryPerArea, na.rm = T), digits = 2),
+            biomass.max = round(max(BiomassDryPerArea, na.rm = T), digits = 2),
+            biomass.mean = round(mean(BiomassDryPerArea, na.rm = T), digits = 2),
+            biomass.sd = round(sd(BiomassDryPerArea, na.rm = T), digits = 2)) %>% 
+  arrange(by = HarvestYear)
+```
+
+Harvest Index
+
+```{r stats.hi}
+df %>% 
+  filter(HarvestYear > 2016) %>% 
+  mutate(FieldID = case_when(ID2 > 470 ~ "CW",
+                             TRUE ~ "CE")) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea / BiomassDryPerArea) %>% 
+  group_by(Crop, HarvestYear, FieldID) %>% 
+  summarize(hi.min = round(min(HarvestIndex, na.rm = T), digits = 2),
+            hi.max = round(max(HarvestIndex, na.rm = T), digits = 2),
+            hi.mean = round(mean(HarvestIndex, na.rm = T), digits = 2),
+            hi.sd = round(sd(HarvestIndex, na.rm = T), digits = 2)) %>% 
+  arrange(by = HarvestYear)
+```
+
+## Explore data by table
+
+```{r datatable}
+df %>% 
+  filter(HarvestYear > 2016) %>% 
+  dplyr::select(-Latitude, -Longitude, -SampleID) %>% 
+  mutate(GrainYieldDryPerArea = round(GrainYieldDryPerArea, digits = 2),
+         BiomassDryPerArea = round(BiomassDryPerArea, digits = 2),
+         HarvestIndex = round((GrainYieldDryPerArea / BiomassDryPerArea), digits = 2)) %>% 
+  datatable(rownames = F)
+```
+
+```{r map}
+tmap_mode("view")
+
+```
+
+## Map 2017 Yield (g/m2)
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, GrainYieldDryPerArea, seq(40,610,by=57), cols <- blues9[3:9])
+  
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, GrainYieldDryPerArea, seq(40,610,by=57), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  dplyr::select(ID2, Crop, GrainYieldDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "GrainYieldDryPerArea")
+```
+
+## Map 2018 Yield (g/m2)
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, GrainYieldDryPerArea, seq(50,650,by=60), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, GrainYieldDryPerArea, seq(50,650,by=60), cols <- blues9[3:9])
+  
+
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  dplyr::select(ID2, Crop, GrainYieldDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "GrainYieldDryPerArea")
+```
+
+## Map 2019 Yield (g/m2)
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, GrainYieldDryPerArea, seq(20,1020,by=100), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  dplyr::select(ID2, HarvestYear, GrainYieldDryPerArea, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, GrainYieldDryPerArea, seq(20,1020,by=100), cols <- blues9[3:9])
+  
+
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  dplyr::select(ID2, Crop, GrainYieldDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "GrainYieldDryPerArea")
+```
+
+## Map of Biomass
+
+2017
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  dplyr::select(ID2, Crop, BiomassDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "BiomassDryPerArea")
+
+```
+
+2018
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2018) %>%
+  dplyr::select(ID2, Crop, BiomassDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "BiomassDryPerArea")
+
+```
+
+2019
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2019) %>%
+  dplyr::select(ID2, Crop, BiomassDryPerArea) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "BiomassDryPerArea")
+
+```
+
+## Map of Harvest Index
+
+2017
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, HarvestIndex, seq(0.3,.7,by=0.1), cols <- blues9[3:9])
+  
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, HarvestIndex, seq(0.1,0.7,by=0.1), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2017) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, Crop, HarvestIndex) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "HarvestIndex")
+
+```
+
+
+2018
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, HarvestIndex, seq(0.15,1.3,by=0.1), cols <- blues9[3:9])
+  
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, HarvestIndex, seq(0.15,0.85,by=0.1), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2018) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, Crop, HarvestIndex) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "HarvestIndex")
+
+```
+
+2019
+
+```{r}
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookeast, HarvestIndex, seq(0.45,0.60,by=0.05), cols <- blues9[3:9])
+  
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, HarvestYear, HarvestIndex, Crop) %>% 
+  na.exclude() %>% 
+  map_idw(cookwest, HarvestIndex, seq(0.3,0.75,by=0.1), cols <- blues9[3:9])
+
+sf %>% 
+  filter(HarvestYear == 2019) %>% 
+  mutate(HarvestIndex = GrainYieldDryPerArea/BiomassDryPerArea) %>%
+  dplyr::select(ID2, Crop, HarvestIndex) %>% 
+  tm_shape() + 
+    tm_symbols(size = 0.5, col = "HarvestIndex")
+
+```
