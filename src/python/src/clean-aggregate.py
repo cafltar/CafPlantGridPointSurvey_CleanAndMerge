@@ -70,6 +70,10 @@ def clean2017(df, areaHarvested, georefPoints):
             Crop = df_qa["Total Biomass Barcode ID"].str.split("_", expand = True)[2],
             ID2 = df_qa["Total Biomass Barcode ID"].str.split("_", expand = True)[0].str.replace("CE", "").str.replace("CW", ""),
             GrainMoisture = df_qa["Moisture"],
+            GrainProtein = df_qa["Protein"],
+            GrainStarch = df_qa["Starch"],
+            GrainGluten = df_qa["WGlutDM"],
+            GrainTestWeight = df_qa["Test Weight\n(Manual, large container, converted value in small container column)"],
             Comments = df_qa["Notes and comments by Ian Leslie October 2019"],
             SampleID = df_qa["Total Biomass Barcode ID"]
         )
@@ -81,7 +85,21 @@ def clean2017(df, areaHarvested, georefPoints):
     )
 
     df_clean = (
-        df_calc[["HarvestYear", "ID2", "SampleID", "Crop", "GrainYieldDryPerArea", "BiomassDryPerArea", "GrainYield125PerArea", "GrainMoisture", "CropExists", "Comments"]]
+        df_calc[[
+            "HarvestYear", 
+            "ID2", 
+            "SampleID", 
+            "Crop", 
+            "GrainYieldDryPerArea", 
+            "BiomassDryPerArea", 
+            "GrainYield125PerArea", 
+            "GrainTestWeight",
+            "GrainMoisture", 
+            "GrainProtein",
+            "GrainStarch",
+            "GrainGluten",
+            "CropExists", 
+            "Comments"]]
         .merge(georefPoints, on = "ID2")
         .drop(["geometry"], axis = 1)
     )
@@ -154,7 +172,11 @@ def clean2019(df, areaHarvested, georefPoints):
             GrainYield0 = 
                 df_merge["Non-oven-dried grain (g)"] - 
                 (df_merge["Non-oven-dried grain (g)"] * (df_merge["Moisture"] / 100.0)),
+            GrainTestWeight = df_merge["Manual Test Weight: Large Kettle\n(large container, converted value in small container column) (grams) Conversion to lbs per Bu = 0.0705.  "],
             GrainMoisture = df_merge["Moisture"],
+            GrainProtein = df_merge["ProtDM"],
+            GrainStarch = df_merge["StarchDM"],
+            GrainGluten = df_merge["WGlutDM"],
             Comments = df_merge["Notes"].astype(str) + "| " + df_merge["Notes made by Ian Leslie"]
         )
     )
@@ -165,7 +187,21 @@ def clean2019(df, areaHarvested, georefPoints):
     )
 
     df_clean = (
-        df_calc[["HarvestYear", "ID2", "SampleID", "Crop", "GrainYieldDryPerArea", "BiomassDryPerArea", "GrainYield125PerArea", "GrainMoisture", "CropExists", "Comments"]]
+        df_calc[[
+            "HarvestYear", 
+            "ID2", 
+            "SampleID", 
+            "Crop", 
+            "GrainYieldDryPerArea", 
+            "BiomassDryPerArea", 
+            "GrainYield125PerArea",
+            "GrainTestWeight", 
+            "GrainMoisture",
+            "GrainProtein",
+            "GrainStarch",
+            "GrainGluten", 
+            "CropExists", 
+            "Comments"]]
         .merge(georefPoints, on = "ID2")
         .drop(["geometry"], axis = 1)
     )
@@ -210,7 +246,23 @@ def main():
     # Concat 2017 - 2019 and assign geocoordinates
     df = (
         pd.concat([df2017, df2018, df2019], sort = False)
-        [["HarvestYear", "ID2", "Latitude", "Longitude", "SampleID", "Crop", "GrainYieldDryPerArea", "BiomassDryPerArea", "GrainMoisture", "GrainYield125PerArea", "CropExists", "Comments"]]
+        [[
+            "HarvestYear", 
+            "ID2", 
+            "Latitude", 
+            "Longitude", 
+            "SampleID", 
+            "Crop", 
+            "GrainYieldDryPerArea", 
+            "BiomassDryPerArea", 
+            "GrainTestWeight",
+            "GrainMoisture", 
+            "GrainYield125PerArea",
+            "GrainProtein",
+            "GrainStarch",
+            "GrainGluten", 
+            "CropExists", 
+            "Comments"]]
         .reset_index(drop=True)
     )    
 
