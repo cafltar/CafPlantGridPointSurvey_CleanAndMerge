@@ -8,7 +8,7 @@ Crop,unitless,"Crop abbreviation where: Spring wheat = SW, Winter wheat = WW, Sp
 GrainYieldDryPerArea,g/m2,"Dry grain yield on a per area basis. Sample dried in greenhouse or oven, threshed, then weighed",Double
 GrainYield125PerArea,g/m2,Grain yield of sample at a standard moisture content of 12.5%,Double
 BiomassDryPerArea,g/m2,Dry biomass on a per area basis. Sample dried in greenhouse or oven before being weighed,Double
-GrainTestWeight,g,Manual test weight based on USDA methods using a large kettle,Double
+GrainTestWeight,lb/bu,"Manual test weight based on USDA methods using a large kettle and converting from g to lb/bu by multiplying by 0.0705, or by small kettle with units in lb/bu",Double
 GrainMoisture,%,Percent of moisture in dried grain from NIR,Double
 GrainProtein,%,Percent of protein in grain,Double
 GrainStarch,%,Percent of starch in dried grain from NIR,Double

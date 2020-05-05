@@ -18,7 +18,10 @@ def run_qa(pathToQAFile, df, idColName):
     qa = pd.read_csv(pathToQAFile)
 
     for index, row in qa.iterrows():
-        df.loc[(df[idColName] == row["ID"]), row["Variable"]] = row["NewVal"]
+        if(np.isnan(row["NewVal"])):
+            df.loc[(df[idColName] == row["ID"]), row["Variable"]] = None
+        else:
+            df.loc[(df[idColName] == row["ID"]), row["Variable"]] = row["NewVal"]
     
     return df
 
@@ -73,7 +76,7 @@ def clean2017(df, areaHarvested, georefPoints):
             GrainProtein = df_qa["Protein"],
             GrainStarch = df_qa["Starch"],
             GrainGluten = df_qa["WGlutDM"],
-            GrainTestWeight = df_qa["Test Weight\n(Manual, large container, converted value in small container column)"],
+            GrainTestWeight = df_qa["Test Weight\n(Manual, small container if no # in large container column)"],
             Comments = df_qa["Notes and comments by Ian Leslie October 2019"],
             SampleID = df_qa["Total Biomass Barcode ID"]
         )
@@ -172,7 +175,7 @@ def clean2019(df, areaHarvested, georefPoints):
             GrainYield0 = 
                 df_merge["Non-oven-dried grain (g)"] - 
                 (df_merge["Non-oven-dried grain (g)"] * (df_merge["Moisture"] / 100.0)),
-            GrainTestWeight = df_merge["Manual Test Weight: Large Kettle\n(large container, converted value in small container column) (grams) Conversion to lbs per Bu = 0.0705.  "],
+            GrainTestWeight = df_merge["Manual Test Weight: Large Kettle\n(large container, converted value in small container column) (grams) Conversion to lbs per Bu = 0.0705.  "] * 0.0705,
             GrainMoisture = df_merge["Moisture"],
             GrainProtein = df_merge["ProtDM"],
             GrainStarch = df_merge["StarchDM"],
