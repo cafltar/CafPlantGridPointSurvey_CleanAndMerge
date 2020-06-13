@@ -14,7 +14,7 @@ import os
 import numpy as np
 import time
 
-def run_qa(pathToQAFile, df, idColName):
+def process_qc_manual_review(pathToQAFile, df, idColName):
     qa = pd.read_csv(pathToQAFile)
 
     for index, row in qa.iterrows():
@@ -24,6 +24,23 @@ def run_qa(pathToQAFile, df, idColName):
             df.loc[(df[idColName] == row["ID"]), row["Variable"]] = row["NewVal"]
     
     return df
+
+def process_qc_bounds_check(df, idColName, lower, upper):
+    df_out = df.copy()
+
+    qc_applied = idColName + "_qcApplied"
+    qc_result = idColName + "_qcResult"
+
+    # TODO: Need to handle adding previous QC checks - use bin() / bit manip
+    # 000010 means level 2 check, or check operating on single value
+    df_out[qc_applied] = "000010"
+    
+    # result code defaults to 0 (passed), set to 2 (fail) if outside of bounds
+    df_out[qc_result] = "000000"
+    df_out.loc[((df_out[idColName] < lower) | (df_out[idColName] > upper)), qc_result] = "000010"
+
+    return df_out
+
 
 def mergeNir2019(df, dirPathToNirFiles):
     nirFiles = glob.glob(
@@ -58,7 +75,7 @@ def clean2017(df, areaHarvested, georefPoints):
 
     # Overwrite any values in QA doc
     qaPath = os.sep.join(["input", "HY2017_QA_20200203.csv"])
-    df_qa = run_qa(qaPath, df, "Total Biomass Barcode ID")
+    df_qa = process_qc_manual_review(qaPath, df, "Total Biomass Barcode ID")
 
     # TODO: Add Residue columns? Find C, N values for gain and residue, add other NIR columns
     # Note: In 2017, the grain was dried in oven before NIR analysis (that obtains Moisture %). In other years NIR is done before oven drying. This year, then, is an exception to calculations where we calculate standard weights at 12.5% moisture using oven dried mass, not field dried
@@ -115,7 +132,7 @@ def clean2018(df, areaHarvested, georefPoints):
     df["CropExists"] = 1
     # Overwrite any values in QA doc
     qaPath = os.sep.join(["input", "HY2018_QA_20200203.csv"])
-    df_qa = run_qa(qaPath, df, "total biomass bag barcode ID")
+    df_qa = process_qc_manual_review(qaPath, df, "total biomass bag barcode ID")
 
     # Note: No NIR data collected for garbs
     df_calc = (df_qa
@@ -142,26 +159,44 @@ def clean2018(df, areaHarvested, georefPoints):
     return df_clean
 
 def clean2019(df, areaHarvested, georefPoints):
-    # QA
-    # Create column for crop presence, assume all crop present
-    df["CropExists"] = 1
-    # Overwrite any values in QA doc
-    qaPath = os.sep.join(["input", "HY2019_QA_20200203.csv"])
-    df_qa = run_qa(qaPath, df, "Total biomass bag barcode ID")
+    ### Data Preparation
+    df_prep = df.copy()
 
-    df_parse = (
-        df_qa.assign(
+    df_prep = (
+        df_prep.assign(
             HarvestYear = 2019,
-            ID2 = df_qa["Total biomass bag barcode ID"].str.split("_", expand = True)[0].str.replace("CE", "").str.replace("CW", ""),
-            Crop = df_qa["Total biomass bag barcode ID"].str.split("_", expand = True)[3],
-            SampleID = df_qa["Total biomass bag barcode ID"].str.upper(),
-            ProjectID = df_qa["Project ID"])
+            ID2 = df["Total biomass bag barcode ID"].str.split("_", expand = True)[0].str.replace("CE", "").str.replace("CW", ""),
+            Crop = df["Total biomass bag barcode ID"].str.split("_", expand = True)[3],
+            SampleID = df["Total biomass bag barcode ID"].str.upper(),
+            ProjectID = df["Project ID"])
         .query("ProjectID == 'GP' & (SampleID.str.contains('CE') | SampleID.str.contains('CW'))")
         .astype({"ID2": int})
     )
 
+    # Create column for crop presence, assume all crop present
+    df_prep["CropExists"] = 1
+
     # Merge all NIR data with dataframe
-    df_merge = mergeNir2019(df_parse, os.sep.join([os.getcwd(), "input", "HY2019_NIR"]))
+    df_prep = mergeNir2019(df_prep, os.sep.join([os.getcwd(), "input", "HY2019_NIR"]))
+    df_prep = (
+        df_prep.assign(
+            GrainMoisture = df_prep["Moisture"],
+            GrainProtein = df_prep["ProtDM"],
+            GrainStarch = df_prep["StarchDM"],
+            GrainGluten = df_prep["WGlutDM"],
+        )
+    )
+
+    # Merge lat/lon
+    df_prep = df_prep.merge(georefPoints, on = "ID2")
+    
+    ### Resolve Manual Override
+
+    # Overwrite any values in QA doc
+    qaPath = os.sep.join(["input", "HY2019_QA_20200203.csv"])
+    df_override = process_qc_manual_review(qaPath, df_prep, "Total biomass bag barcode ID")
+
+    ### Calculation
 
     # Convert col types for math power
     #numeric_cols = ["Dried total biomass (g)", "Non-oven-dried grain (g)"]
@@ -169,26 +204,32 @@ def clean2019(df, areaHarvested, georefPoints):
 
     # TODO: Add test weight (convert from g to lb/bu using 0.0705), add NIR results, add C,N values
     df_calc = (
-        df_merge.assign(
-            BiomassDryPerArea = df_merge["Dried total biomass (g)"] / areaHarvested,
-            GrainYieldDryPerArea = df_merge["Non-oven-dried grain (g)"] / areaHarvested,
+        df_override.assign(
+            BiomassDryPerArea = df_override["Dried total biomass (g)"] / areaHarvested,
+            GrainYieldDryPerArea = df_override["Non-oven-dried grain (g)"] / areaHarvested,
             GrainYield0 = 
-                df_merge["Non-oven-dried grain (g)"] - 
-                (df_merge["Non-oven-dried grain (g)"] * (df_merge["Moisture"] / 100.0)),
-            GrainTestWeight = df_merge["Manual Test Weight: Large Kettle\n(large container, converted value in small container column) (grams) Conversion to lbs per Bu = 0.0705.  "] * 0.0705,
-            GrainMoisture = df_merge["Moisture"],
-            GrainProtein = df_merge["ProtDM"],
-            GrainStarch = df_merge["StarchDM"],
-            GrainGluten = df_merge["WGlutDM"],
-            Comments = df_merge["Notes"].astype(str) + "| " + df_merge["Notes made by Ian Leslie"]
+                df_override["Non-oven-dried grain (g)"] - 
+                (df_override["Non-oven-dried grain (g)"] * (df_override["Moisture"] / 100.0)),
+            GrainTestWeight = df_override["Manual Test Weight: Large Kettle\n(large container, converted value in small container column) (grams) Conversion to lbs per Bu = 0.0705.  "] * 0.0705,
+            Comments = df_override["Notes"].astype(str) + "| " + df_override["Notes made by Ian Leslie"]
         )
     )
 
     df_calc = df_calc.assign(
         GrainYield125PerArea = 
-            (df_calc.GrainYield0 + (df_calc.GrainYield0 * 0.125)) / areaHarvested,
+            (df_calc.GrainYield0 + (df_calc.GrainYield0 * 0.125)) / areaHarvested
     )
 
+    ### Quality Control
+    df_auto_qc = process_qc_bounds_check(df_calc, "GrainTestWeight", 0.0, 63.0)
+    df_auto_qc = process_qc_bounds_check(df_auto_qc, "GrainMoisture", 7.0, 25.0)
+    df_auto_qc = process_qc_bounds_check(df_auto_qc, "GrainProtein", 7.0, 22.0)
+    df_auto_qc = process_qc_bounds_check(df_auto_qc, "GrainStarch", 52.0, 75.0)
+    df_auto_qc = process_qc_bounds_check(df_auto_qc, "GrainGluten", 14.0, 45.0)
+
+    ### Resolve Manual Review
+
+    ###
     df_clean = (
         df_calc[[
             "HarvestYear", 
@@ -205,8 +246,6 @@ def clean2019(df, areaHarvested, georefPoints):
             "GrainGluten", 
             "CropExists", 
             "Comments"]]
-        .merge(georefPoints, on = "ID2")
-        .drop(["geometry"], axis = 1)
     )
 
     return df_clean
