@@ -1,0 +1,8 @@
+name: caf-plant-gridpoint-survey
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - pandas
+  - geopandas
+  - numpy
